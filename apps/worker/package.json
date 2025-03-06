@@ -9,6 +9,15 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
-    "openai": "^4.86.1"
+    "@google-cloud/vertexai": "^1.9.3",
+    "@google/generative-ai": "^0.23.0",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/xml2js": "^0.4.14",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "groq-sdk": "^0.15.0",
+    "openai": "^4.86.1",
+    "xml2js": "^0.6.2"
   }
 }
