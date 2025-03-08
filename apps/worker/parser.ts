@@ -1,4 +1,13 @@
-import { parseString } from "xml2js";
+/*
+    <boltArtifact>
+        <boltAction type="shell">
+            npm run start
+        </boltAction>
+        <boltAction type="file" filePath="src/index.js">
+            console.log("Hello, world!");
+        </boltAction>
+    </boltArtifact>
+*/
 
 export class ArtifactProcessor {
   public currentArtifact: string;
@@ -20,59 +29,51 @@ export class ArtifactProcessor {
   }
 
   parse() {
-    // Debugging: Log the raw input
-    console.log("Raw XML Artifact:", JSON.stringify(this.currentArtifact));
+    const latestActionStart = this.currentArtifact
+      .split("\n")
+      .findIndex((line) => line.includes("<boltAction type="));
+    const latestActionEnd =
+      this.currentArtifact
+        .split("\n")
+        .findIndex((line) => line.includes("</boltAction>")) ??
+      this.currentArtifact.split("\n").length - 1;
 
-    // Validate input: Check for empty or malformed XML
-    if (!this.currentArtifact || !this.currentArtifact.trim()) {
-      console.error("Error: XML string is empty or undefined.");
+    if (latestActionStart === -1) {
       return;
     }
 
-    // Sanitize: Remove unexpected characters like backticks (`)
-    this.currentArtifact = this.currentArtifact.replace(/[`]/g, "").trim();
+    const latestActionType = this.currentArtifact
+      .split("\n")
+      [latestActionStart].split("type=")[1]
+      .split(" ")[0]
+      .split(">")[0];
+    const latestActionContent = this.currentArtifact
+      .split("\n")
+      .slice(latestActionStart, latestActionEnd + 1)
+      .join("\n");
 
-    // Validate if XML starts with '<' (a proper tag)
-    if (!this.currentArtifact.startsWith("<")) {
-      console.error("Error: XML does not start with a valid tag.");
-      return;
-    }
-
-    // Parse XML
-    parseString(
-      this.currentArtifact,
-      { trim: true, explicitArray: false },
-      (err, result) => {
-        if (err) {
-          console.error("Error parsing XML:", err.message);
-          return;
+    try {
+      if (latestActionType === '"shell"') {
+        let shellCommand = latestActionContent.split("\n").slice(1).join("\n");
+        if (shellCommand.includes("</boltAction>")) {
+          shellCommand = shellCommand.split("</boltAction>")[0];
+          this.currentArtifact =
+            this.currentArtifact.split(latestActionContent)[1];
+          this.onShellCommand(shellCommand);
         }
-
-        // Ensure expected XML structure exists
-        if (!result?.boltArtifact?.boltAction) {
-          console.error(
-            "Error: Missing 'boltArtifact' or 'boltAction' in XML."
-          );
-          return;
+      } else if (latestActionType === '"file"') {
+        const filePath = this.currentArtifact
+          .split("\n")
+          [latestActionStart].split("filePath=")[1]
+          .split(">")[0];
+        let fileContent = latestActionContent.split("\n").slice(1).join("\n");
+        if (fileContent.includes("</boltAction>")) {
+          fileContent = fileContent.split("</boltAction>")[0];
+          this.currentArtifact =
+            this.currentArtifact.split(latestActionContent)[1];
+          this.onFileContent(filePath.split('"')[1], fileContent);
         }
-
-        // Extract actions
-        const actions = Array.isArray(result.boltArtifact.boltAction)
-          ? result.boltArtifact.boltAction
-          : [result.boltArtifact.boltAction];
-
-        // Process each action
-        for (const action of actions) {
-          if (action.$?.type === "shell") {
-            this.onShellCommand(action._);
-          } else if (action.$?.type === "file") {
-            this.onFileContent(action.$.filePath, action._);
-          }
-        }
-
-        // Clear processed artifacts
-        this.currentArtifact = "";
       }
-    );
+    } catch (e) {}
   }
 }

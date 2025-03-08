@@ -16,6 +16,7 @@
     "@types/xml2js": "^0.4.14",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "fast-xml-parser": "^5.0.8",
     "groq-sdk": "^0.15.0",
     "openai": "^4.86.1",
     "xml2js": "^0.6.2"

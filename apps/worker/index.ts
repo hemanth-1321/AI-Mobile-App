@@ -74,6 +74,7 @@ app.post("/prompt", async (req, res) => {
     for await (const chunk of stream.stream) {
       const text = chunk.text();
       artifactProcessor.append(text);
+
       artifactProcessor.parse();
       artifact += text;
     }
